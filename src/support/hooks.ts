@@ -1,5 +1,5 @@
 import { After, Before, Status } from '@cucumber/cucumber';
-import { chromium, firefox, webkit } from '@playwright/test';
+import { chromium, firefox, webkit, type BrowserType } from '@playwright/test';
 import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { config } from '../config/config';
@@ -8,74 +8,68 @@ import type { CustomWorld } from './CustomWorld';
 const resultsDir = resolve(process.cwd(), 'test-results');
 const videoDir = resolve(resultsDir, 'videos');
 
-const getBrowserLauncher = () => {
-  switch (config.browser.name) {
-    case 'firefox':
-      return firefox;
-    case 'webkit':
-      return webkit;
-    case 'chromium':
-    default:
-      return chromium;
-  }
+const browserLaunchers: Record<string, BrowserType> = {
+  chromium,
+  firefox,
+  webkit
 };
 
 Before(async function (this: CustomWorld, scenario) {
-  await mkdir(resultsDir, { recursive: true });
-  await mkdir(videoDir, { recursive: true });
-  this.scenarioName = scenario.pickle.name;
+  await Promise.all([
+    mkdir(resultsDir, { recursive: true }),
+    mkdir(videoDir, { recursive: true })
+  ]);
 
-  const browserFactory = getBrowserLauncher();
-  this.browser = await browserFactory.launch({ headless: config.browser.headless });
+  this.scenarioName = scenario.pickle.name;
+  this.browser = await browserLaunchers[config.browser.name].launch({
+    headless: config.browser.headless
+  });
   this.context = await this.browser.newContext({
     viewport: { width: 1440, height: 900 },
-    ignoreHTTPSErrors: true,
     recordVideo: {
       dir: videoDir,
-      size: { width: 1440, height: 900 },
-    },
+      size: { width: 1440, height: 900 }
+    }
   });
 
   await this.context.tracing.start({
     screenshots: true,
     snapshots: true,
-    sources: true,
+    sources: true
   });
 
   this.page = await this.context.newPage();
+  this.page.setDefaultTimeout(config.timeouts.default);
 });
 
 After(async function (this: CustomWorld, scenario) {
-  const status = scenario.result?.status;
-  const scenarioName = this.scenarioName.replace(/\s+/g, '-').toLowerCase();
+  const failed = scenario.result?.status === Status.FAILED;
+  const safeName = this.scenarioName.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const timestamp = Date.now();
+  const video = this.page?.video();
 
-  if (this.page && status === Status.FAILED) {
-    const screenshot = await this.page.screenshot({ fullPage: true });
-    await this.attach(screenshot, 'image/png');
-
-    const screenshotPath = resolve(resultsDir, `${Date.now()}-${scenarioName}.png`);
-    await this.page.screenshot({ path: screenshotPath, fullPage: true });
-
-    const video = this.page.video();
-    if (video) {
-      try {
-        const videoPath = await video.path();
-        const videoBuffer = await readFile(videoPath);
-        await this.attach(videoBuffer, 'video/webm');
-      } catch (error) {
-        // Ignore video attachment issues so the scenario result remains focused on the failure itself.
-      }
+  try {
+    if (failed && this.page) {
+      const screenshot = await this.page.screenshot({
+        path: resolve(resultsDir, `${timestamp}-${safeName}.png`),
+        fullPage: true
+      });
+      await this.attach(screenshot, 'image/png');
     }
-  }
 
-  if (status === Status.FAILED) {
-    const tracePath = resolve(resultsDir, `${Date.now()}-${scenarioName}-trace.zip`);
-    await this.context?.tracing.stop({ path: tracePath });
-  } else {
-    await this.context?.tracing.stop();
-  }
+    if (this.context) {
+      const tracePath = failed
+        ? resolve(resultsDir, `${timestamp}-${safeName}-trace.zip`)
+        : undefined;
+      await this.context.tracing.stop(tracePath ? { path: tracePath } : undefined);
+      await this.context.close();
+    }
 
-  await this.context?.close();
-  await this.browser?.close();
+    if (failed && video) {
+      const videoBuffer = await readFile(await video.path());
+      await this.attach(videoBuffer, 'video/webm');
+    }
+  } finally {
+    await this.browser?.close();
+  }
 });
-

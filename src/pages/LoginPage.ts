@@ -3,13 +3,13 @@ import { BasePage } from './BasePage';
 
 export class LoginPage extends BasePage {
   async open(): Promise<void> {
-    await this.page.goto('https://the-internet.herokuapp.com/login');
+    await this.openPage('/login');
     await this.expectPageHeading('Login Page');
   }
 
   async signIn(username: string, password: string): Promise<void> {
-    await this.page.locator('#username').fill(username);
-    await this.page.locator('#password').fill(password);
+    await this.page.getByLabel('Username').fill(username);
+    await this.page.getByLabel('Password').fill(password);
     await this.page.getByRole('button', { name: 'Login' }).click();
   }
 
