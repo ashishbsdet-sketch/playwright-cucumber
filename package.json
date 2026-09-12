@@ -1,0 +1,20 @@
+{
+  "name": "playwright-cucumber-automation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "BROWSER=chromium cucumber-js",
+    "test:smoke": "BROWSER=chromium cucumber-js --tags '@smoke'",
+    "test:headed": "HEADLESS=false BROWSER=chromium cucumber-js",
+    "test:firefox": "HEADLESS=true BROWSER=firefox cucumber-js",
+    "test:webkit": "HEADLESS=true BROWSER=webkit cucumber-js",
+    "report": "cucumber-js --format html:reports/cucumber-report.html"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.2.0",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.20.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
