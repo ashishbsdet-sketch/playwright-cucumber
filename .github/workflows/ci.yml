@@ -1,24 +1,90 @@
-name: CI
+name: Playwright Cucumber Tests
 
 on:
-  push: {}
-  pull_request: {}
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playwright-cucumber-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  python-tests:
+  quality:
+    name: TypeScript validation
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          playwright install --with-deps
-      - name: Run tests
-        run: |
-          pytest -q
+    timeout-minutes: 10
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate TypeScript
+        run: npm run test:typecheck
+
+  test:
+    name: ${{ matrix.browser }} scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run Cucumber scenarios
+        env:
+          BROWSER: ${{ matrix.browser }}
+          HEADLESS: "true"
+          BASE_URL: ${{ secrets.BASE_URL || 'https://the-internet.herokuapp.com' }}
+          TEST_USERNAME: ${{ secrets.TEST_USERNAME || 'tomsmith' }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD || 'SuperSecretPassword!' }}
+          HOME: /root
+        run: npm test
+
+      - name: Upload Cucumber report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-report-${{ matrix.browser }}-${{ github.run_number }}
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-artifacts-${{ matrix.browser }}-${{ github.run_number }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

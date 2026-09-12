@@ -1,12 +1,29 @@
-import 'dotenv/config';
+const environmentValue = (name: string, fallback: string): string => {
+  const value = process.env[name];
+  return value && value.trim() ? value : fallback;
+};
+
+const supportedBrowsers = ['chromium', 'firefox', 'webkit'] as const;
+type BrowserName = (typeof supportedBrowsers)[number];
+
+const browserName = environmentValue('BROWSER', 'chromium').toLowerCase();
+if (!supportedBrowsers.includes(browserName as BrowserName)) {
+  throw new Error(
+    `Unsupported BROWSER value "${browserName}". Use chromium, firefox, or webkit.`
+  );
+}
 
 export const config = {
-  baseURL: process.env.BASE_URL ?? 'https://the-internet.herokuapp.com',
+  baseURL: environmentValue('BASE_URL', 'https://the-internet.herokuapp.com'),
+  credentials: {
+    username: environmentValue('TEST_USERNAME', 'tomsmith'),
+    password: environmentValue('TEST_PASSWORD', 'SuperSecretPassword!')
+  },
   browser: {
-    name: (process.env.BROWSER ?? 'chromium').toLowerCase(),
-    headless: process.env.HEADLESS !== 'false',
+    name: browserName as BrowserName,
+    headless: environmentValue('HEADLESS', 'true').toLowerCase() !== 'false'
   },
   timeouts: {
-    default: Number(process.env.DEFAULT_TIMEOUT ?? 15000),
-  },
+    default: Number(environmentValue('DEFAULT_TIMEOUT', '15000'))
+  }
 };

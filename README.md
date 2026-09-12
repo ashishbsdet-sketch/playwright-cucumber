@@ -1,173 +1,88 @@
-# Playwright + Cucumber Automation Framework
+# Playwright Cucumber Automation
 
-A professional end-to-end UI automation framework built with Playwright, TypeScript, and Cucumber BDD. The project is designed to keep tests readable for business stakeholders while still being maintainable for engineers.
+[![Playwright Cucumber Tests](https://github.com/ashishbsdet-sketch/playwright-cucumber/actions/workflows/ci.yml/badge.svg)](https://github.com/ashishbsdet-sketch/playwright-cucumber/actions/workflows/ci.yml)
 
-It automates the public The Internet demo application and focuses on authentication scenarios such as:
+This is a small cross-browser test framework for the authentication flow on [The Internet](https://the-internet.herokuapp.com). I built it with Playwright, TypeScript and Cucumber so the scenarios remain readable while the browser setup and assertions stay in reusable code.
+
+## What is covered
+
 - successful login
-- invalid username
-- invalid password
-- logout flow
+- invalid username and password messages
+- logout from the secure area
+- Chromium, Firefox and WebKit execution
+- isolated browser context for every scenario
+- screenshots, traces and videos when a scenario fails
+- HTML and JSON Cucumber reports
+- strict TypeScript validation in CI
 
-## Why this framework
-
-This setup follows modern automation best practices:
-- Behavior-driven scenarios in Gherkin
-- Page Object Model for UI interactions
-- Browser lifecycle management via Cucumber hooks
-- Isolation of browser context per scenario
-- Screenshot, video, and trace capture on failure
-- Browser matrix support (Chromium, Firefox, WebKit)
-- TypeScript for safer and more maintainable test code
-
-## Project structure
+## Project layout
 
 ```text
-playwright-cucumber/
-├── features/
-│   └── login.feature
+.
+├── features/                 # Business-readable Gherkin scenarios
 ├── src/
-│   ├── config/
-│   │   └── config.ts
-│   ├── pages/
-│   │   ├── BasePage.ts
-│   │   └── LoginPage.ts
-│   ├── steps/
-│   │   └── login.steps.ts
-│   ├── support/
-│   │   ├── CustomWorld.ts
-│   │   └── hooks.ts
-│   └── utils/
-├── cucumber.js
-├── package.json
-├── tsconfig.json
-├── .gitignore
-└── README.md
+│   ├── config/               # Runtime configuration
+│   ├── pages/                # Page objects and assertions
+│   ├── steps/                # Cucumber step definitions
+│   └── support/              # World object and browser hooks
+├── .github/workflows/ci.yml  # Cross-browser CI pipeline
+├── cucumber.js               # Cucumber runner settings
+└── tsconfig.json             # TypeScript compiler settings
 ```
 
-## Prerequisites
+## Running it locally
 
-Install the required tools:
-- Node.js 18+
-- npm
-
-## Setup
+You need Node.js 20 or later.
 
 ```bash
-npm install
+git clone https://github.com/ashishbsdet-sketch/playwright-cucumber.git
+cd playwright-cucumber
+npm ci
 npx playwright install --with-deps
-```
-
-If you are running on a local machine and want to install browser binaries only:
-
-```bash
-npx playwright install
-```
-
-## Run tests
-
-Run the default browser suite:
-
-```bash
 npm test
 ```
 
-Run only smoke-tagged scenarios:
+Other useful commands:
 
 ```bash
 npm run test:smoke
-```
-
-Run headed mode (visible browser):
-
-```bash
 npm run test:headed
-```
-
-Run Firefox:
-
-```bash
 npm run test:firefox
-```
-
-Run WebKit:
-
-```bash
 npm run test:webkit
+npm run test:typecheck
 ```
 
-## Browser configuration
+## Configuration
 
-Browser selection is controlled from `src/config/config.ts` and the environment variable `BROWSER`.
+The defaults work with the public demo site. Copy `.env.example` if you want a reference, then export the values in your terminal or CI environment.
 
-Supported values:
-- `chromium` (default)
-- `firefox`
-- `webkit`
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `BASE_URL` | Application under test | `https://the-internet.herokuapp.com` |
+| `TEST_USERNAME` | Valid test username | `tomsmith` |
+| `TEST_PASSWORD` | Valid test password | Public demo password |
+| `BROWSER` | `chromium`, `firefox` or `webkit` | `chromium` |
+| `HEADLESS` | Run without a visible browser window | `true` |
+| `DEFAULT_TIMEOUT` | Playwright action timeout in milliseconds | `15000` |
 
-Example:
+For a real application, credentials should be stored as protected CI secrets rather than committed to feature files.
 
-```bash
-BROWSER=firefox HEADLESS=false npx cucumber-js
-```
+## Reports and failure evidence
 
-## Failure artifacts
+Every run produces an HTML report at `reports/cucumber-report.html` and a JSON result file. Failed scenarios also retain a screenshot, Playwright trace and video under `test-results/`. CI uploads these files as short-lived workflow artifacts.
 
-When a scenario fails, the framework captures:
-- screenshot
-- video recording
-- trace file
+## Design notes
 
-Artifacts are saved under:
+- Feature files describe customer behaviour rather than selectors or browser actions.
+- The page object owns navigation, locators and UI assertions.
+- Hooks create a clean browser context for each scenario.
+- Configuration is kept outside the feature file so the same suite can run in different environments.
+- Playwright auto-waiting and assertions are used instead of fixed delays.
 
-```text
-./test-results/
-```
+## Next improvements
 
-This makes debugging faster because the engineer can review the exact failing state of the application.
+The framework is deliberately focused on one workflow. The next useful additions would be accessibility checks, API-assisted setup and a second feature area rather than more variations of the same login test.
 
-## BDD approach
+## Disclaimer
 
-The feature file describes behavior in a business-readable format:
-
-```gherkin
-Feature: Customer authentication
-  Scenario Outline: Customer login attempts
-    When the customer signs in with username "<username>" and password "<password>"
-    Then <expected_result>
-```
-
-This keeps the tests understandable for QA and product stakeholders while still allowing technical implementation behind the scenes.
-
-## Best practices used in this project
-
-- Use semantic locators with Playwright role-based selectors where possible
-- Keep page logic separate from scenario logic
-- Reuse code under page objects and reusable hooks
-- Avoid hardcoded waits; rely on Playwright assertions
-- Keep tests isolated via browser context per scenario
-- Fail fast with clear assertions
-
-## Troubleshooting
-
-If tests fail due to a selector mismatch:
-- check the DOM structure in the target app
-- prefer role-based selectors over CSS-only selectors
-- use exact heading matching where there are multiple headings on the page
-
-If browser binaries are missing:
-
-```bash
-npx playwright install
-```
-
-## Future improvements
-
-- add API layer for setup/teardown data
-- add data-driven fixtures for reusable test data
-- add CI pipeline with GitHub Actions
-- add enhanced reporting (Allure / HTML dashboards)
-- add accessibility checks with Axe
-
-## License
-
-This project is intended for learning and demonstration purposes.
+The Internet is a public test site. This repository is an independent portfolio project.

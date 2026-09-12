@@ -1,14 +1,16 @@
 {
   "name": "playwright-cucumber-automation",
   "version": "1.0.0",
+  "description": "Cross-browser BDD tests built with Playwright, Cucumber and TypeScript",
   "private": true,
   "scripts": {
     "test": "BROWSER=chromium cucumber-js",
     "test:smoke": "BROWSER=chromium cucumber-js --tags '@smoke'",
     "test:headed": "HEADLESS=false BROWSER=chromium cucumber-js",
-    "test:firefox": "HEADLESS=true BROWSER=firefox cucumber-js",
-    "test:webkit": "HEADLESS=true BROWSER=webkit cucumber-js",
-    "report": "cucumber-js --format html:reports/cucumber-report.html"
+    "test:chromium": "BROWSER=chromium cucumber-js",
+    "test:firefox": "BROWSER=firefox cucumber-js",
+    "test:webkit": "BROWSER=webkit cucumber-js",
+    "test:typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.2.0",

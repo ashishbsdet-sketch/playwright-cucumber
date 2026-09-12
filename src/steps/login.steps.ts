@@ -1,13 +1,21 @@
 import { Given, Then, When } from '@cucumber/cucumber';
+import { config } from '../config/config';
 import type { CustomWorld } from '../support/CustomWorld';
 
 Given('the customer opens the login page', async function (this: CustomWorld) {
   await this.loginPage().open();
 });
 
-When('the customer signs in with username {string} and password {string}', async function (this: CustomWorld, username: string, password: string) {
-  await this.loginPage().signIn(username, password);
+When('the customer signs in with valid credentials', async function (this: CustomWorld) {
+  await this.loginPage().signIn(config.credentials.username, config.credentials.password);
 });
+
+When(
+  'the customer signs in with username {string} and password {string}',
+  async function (this: CustomWorld, username: string, password: string) {
+    await this.loginPage().signIn(username, password);
+  }
+);
 
 Then('the secure account area should be displayed', async function (this: CustomWorld) {
   await this.loginPage().expectSecureArea();
